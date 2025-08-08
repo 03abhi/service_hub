@@ -31,7 +31,8 @@ import {
   Sun,
   Moon,
   Menu,
-  X
+  X,
+  Search
 } from 'lucide-react';
 
 function App() {
@@ -425,40 +426,40 @@ function App() {
             <div className="text-center group">
               <div className="relative">
                 <div className={`w-20 h-20 ${isDarkMode ? 'bg-blue-900' : 'bg-blue-100'} rounded-full flex items-center justify-center mx-auto mb-6 group-hover:${isDarkMode ? 'bg-blue-800' : 'bg-blue-200'} transition-all duration-200 group-hover:scale-110`}>
-                  <User className="w-10 h-10 text-blue-600" />
+                  <Search className="w-10 h-10 text-blue-600" />
                 </div>
                 <div className="absolute -top-2 -right-2 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-lg">
                   1
                 </div>
               </div>
-              <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-3`}>Sign Up</h3>
-              <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Quick OTP-based registration with your phone number. No lengthy forms required.</p>
+              <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-3`}>Browse Services</h3>
+              <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Explore our wide range of professional home services with transparent pricing.</p>
             </div>
 
             <div className="text-center group">
               <div className="relative">
                 <div className={`w-20 h-20 ${isDarkMode ? 'bg-green-900' : 'bg-green-100'} rounded-full flex items-center justify-center mx-auto mb-6 group-hover:${isDarkMode ? 'bg-green-800' : 'bg-green-200'} transition-all duration-200 group-hover:scale-110`}>
-                  <Clock className="w-10 h-10 text-green-600" />
+                  <Calendar className="w-10 h-10 text-green-600" />
                 </div>
                 <div className="absolute -top-2 -right-2 w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-lg">
                   2
                 </div>
               </div>
-              <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-3`}>Choose Service</h3>
-              <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Select your service type and preferred time slot from available options.</p>
+              <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-3`}>Book Appointment</h3>
+              <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Fill out our simple booking form with your details and preferred schedule.</p>
             </div>
 
             <div className="text-center group">
               <div className="relative">
                 <div className={`w-20 h-20 ${isDarkMode ? 'bg-purple-900' : 'bg-purple-100'} rounded-full flex items-center justify-center mx-auto mb-6 group-hover:${isDarkMode ? 'bg-purple-800' : 'bg-purple-200'} transition-all duration-200 group-hover:scale-110`}>
-                  <CreditCard className="w-10 h-10 text-purple-600" />
+                  <Phone className="w-10 h-10 text-purple-600" />
                 </div>
                 <div className="absolute -top-2 -right-2 w-8 h-8 bg-purple-600 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-lg">
                   3
                 </div>
               </div>
-              <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-3`}>Pay & Get Matched</h3>
-              <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Secure payment and instant matching with verified technician in your area.</p>
+              <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-3`}>Get Confirmation</h3>
+              <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Receive instant confirmation and our team will contact you to finalize details.</p>
             </div>
 
             <div className="text-center group">
@@ -470,8 +471,8 @@ function App() {
                   4
                 </div>
               </div>
-              <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-3`}>Service & Feedback</h3>
-              <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Quality service completion and rate your experience for others.</p>
+              <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-3`}>Enjoy Service</h3>
+              <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Professional service delivery at your doorstep with quality guarantee.</p>
             </div>
           </div>
         </div>
