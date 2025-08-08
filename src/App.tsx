@@ -49,6 +49,19 @@ function App() {
     date: "",
     time: ""
   });
+  const [isExpertRegistrationModalOpen, setIsExpertRegistrationModalOpen] = useState(false);
+  const [expertRegistrationForm, setExpertRegistrationForm] = useState({
+    fullName: "",
+    phone: "",
+    email: "",
+    serviceCategory: "",
+    experience: "",
+    address: "",
+    idProof: "",
+    idNumber: "",
+    availability: "",
+    hourlyRate: ""
+  });
 
   const toggleTheme = () => {
     setIsDarkMode(!isDarkMode);
@@ -87,6 +100,38 @@ function App() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setBookingForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const openExpertRegistrationModal = () => {
+    setIsExpertRegistrationModalOpen(true);
+  };
+
+  const closeExpertRegistrationModal = () => {
+    setIsExpertRegistrationModalOpen(false);
+    setExpertRegistrationForm({
+      fullName: "",
+      phone: "",
+      email: "",
+      serviceCategory: "",
+      experience: "",
+      address: "",
+      idProof: "",
+      idNumber: "",
+      availability: "",
+      hourlyRate: ""
+    });
+  };
+
+  const handleExpertRegistrationSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Here you would typically send the expert registration data to your backend
+    alert(`Expert registration submitted for ${expertRegistrationForm.fullName}! We'll contact you at ${expertRegistrationForm.phone} within 24 hours to verify your documents and complete the onboarding process.`);
+    closeExpertRegistrationModal();
+  };
+
+  const handleExpertInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setExpertRegistrationForm(prev => ({ ...prev, [name]: value }));
   };
 
   const services = [
@@ -172,7 +217,7 @@ function App() {
   const faqs = [
     {
       question: "How do I book a service?",
-      answer: "Simply sign up with your phone number, choose your service, select a time slot, and make payment. We'll match you with a verified technician who will arrive at your doorstep."
+      answer: "Simply click the 'Book Service' button, fill out our booking form with your details (name, phone, address, preferred date and time), and submit. We'll contact you to confirm the appointment and match you with a verified technician who will arrive at your doorstep."
     },
     {
       question: "What payment options are available?",
@@ -567,7 +612,10 @@ function App() {
                 </div>
               </div>
 
-              <button className="bg-yellow-400 text-blue-900 px-8 py-4 rounded-lg font-semibold text-lg hover:bg-yellow-300 transition-colors duration-200 flex items-center shadow-lg hover:shadow-xl">
+              <button 
+                onClick={openExpertRegistrationModal}
+                className="bg-yellow-400 text-blue-900 px-8 py-4 rounded-lg font-semibold text-lg hover:bg-yellow-300 transition-colors duration-200 flex items-center shadow-lg hover:shadow-xl"
+              >
                 Register Now
                 <ChevronRight className="ml-2 w-5 h-5" />
               </button>
@@ -1012,6 +1060,238 @@ function App() {
                     className="flex-1 bg-gradient-to-r from-blue-600 to-teal-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-teal-700 transition-all duration-200 shadow-lg"
                   >
                     Book Service
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Expert Registration Modal */}
+      {isExpertRegistrationModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto`}>
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  Join as Service Expert
+                </h2>
+                <button
+                  onClick={closeExpertRegistrationModal}
+                  className={`p-2 rounded-full ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors duration-200`}
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <form onSubmit={handleExpertRegistrationSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      name="fullName"
+                      value={expertRegistrationForm.fullName}
+                      onChange={handleExpertInputChange}
+                      required
+                      className={`w-full px-4 py-3 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                      placeholder="Enter your full name"
+                    />
+                  </div>
+
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Phone Number *
+                    </label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={expertRegistrationForm.phone}
+                      onChange={handleExpertInputChange}
+                      required
+                      className={`w-full px-4 py-3 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                      placeholder="Enter your phone number"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={expertRegistrationForm.email}
+                      onChange={handleExpertInputChange}
+                      className={`w-full px-4 py-3 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                      placeholder="Enter your email address"
+                    />
+                  </div>
+
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Service Category *
+                    </label>
+                    <select
+                      name="serviceCategory"
+                      value={expertRegistrationForm.serviceCategory}
+                      onChange={handleExpertInputChange}
+                      required
+                      className={`w-full px-4 py-3 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                    >
+                      <option value="">Select your service category</option>
+                      <option value="Electrician">Electrician</option>
+                      <option value="Plumber">Plumber</option>
+                      <option value="Painter">Painter</option>
+                      <option value="Carpenter">Carpenter</option>
+                      <option value="House Cleaning">House Cleaning</option>
+                      <option value="AC Service">AC Service</option>
+                      <option value="Appliance Repair">Appliance Repair</option>
+                      <option value="Pest Control">Pest Control</option>
+                      <option value="Interior Design">Interior Design</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Years of Experience *
+                    </label>
+                    <select
+                      name="experience"
+                      value={expertRegistrationForm.experience}
+                      onChange={handleExpertInputChange}
+                      required
+                      className={`w-full px-4 py-3 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                    >
+                      <option value="">Select experience</option>
+                      <option value="0-1 years">0-1 years</option>
+                      <option value="1-3 years">1-3 years</option>
+                      <option value="3-5 years">3-5 years</option>
+                      <option value="5-10 years">5-10 years</option>
+                      <option value="10+ years">10+ years</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Hourly Rate (₹) *
+                    </label>
+                    <input
+                      type="number"
+                      name="hourlyRate"
+                      value={expertRegistrationForm.hourlyRate}
+                      onChange={handleExpertInputChange}
+                      required
+                      min="100"
+                      max="2000"
+                      className={`w-full px-4 py-3 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                      placeholder="Enter your hourly rate"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Complete Address *
+                  </label>
+                  <textarea
+                    name="address"
+                    value={expertRegistrationForm.address}
+                    onChange={handleExpertInputChange}
+                    required
+                    rows={3}
+                    className={`w-full px-4 py-3 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                    placeholder="Enter your complete address"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      ID Proof Type *
+                    </label>
+                    <select
+                      name="idProof"
+                      value={expertRegistrationForm.idProof}
+                      onChange={handleExpertInputChange}
+                      required
+                      className={`w-full px-4 py-3 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                    >
+                      <option value="">Select ID proof</option>
+                      <option value="Aadhaar Card">Aadhaar Card</option>
+                      <option value="PAN Card">PAN Card</option>
+                      <option value="Driving License">Driving License</option>
+                      <option value="Voter ID">Voter ID</option>
+                      <option value="Passport">Passport</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      ID Number *
+                    </label>
+                    <input
+                      type="text"
+                      name="idNumber"
+                      value={expertRegistrationForm.idNumber}
+                      onChange={handleExpertInputChange}
+                      required
+                      className={`w-full px-4 py-3 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                      placeholder="Enter your ID number"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Availability *
+                  </label>
+                  <select
+                    name="availability"
+                    value={expertRegistrationForm.availability}
+                    onChange={handleExpertInputChange}
+                    required
+                    className={`w-full px-4 py-3 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  >
+                    <option value="">Select availability</option>
+                    <option value="Full-time (6+ hours daily)">Full-time (6+ hours daily)</option>
+                    <option value="Part-time (3-5 hours daily)">Part-time (3-5 hours daily)</option>
+                    <option value="Weekends only">Weekends only</option>
+                    <option value="Evenings only">Evenings only</option>
+                    <option value="Flexible schedule">Flexible schedule</option>
+                  </select>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-blue-900 mb-2">Next Steps:</h4>
+                  <ul className="text-sm text-blue-800 space-y-1">
+                    <li>• We'll verify your documents within 24 hours</li>
+                    <li>• Complete background verification process</li>
+                    <li>• Set up your service profile and pricing</li>
+                    <li>• Start receiving customer bookings</li>
+                  </ul>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={closeExpertRegistrationModal}
+                    className={`flex-1 px-6 py-3 rounded-lg font-semibold border-2 ${isDarkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'} transition-colors duration-200`}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 bg-gradient-to-r from-yellow-400 to-orange-500 text-blue-900 px-6 py-3 rounded-lg font-semibold hover:from-yellow-500 hover:to-orange-600 transition-all duration-200 shadow-lg"
+                  >
+                    Submit Application
                   </button>
                 </div>
               </form>
