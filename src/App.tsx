@@ -60,7 +60,7 @@ function App() {
       title: "Plumber",
       subServices: ["RO Repair", "Pipe Leakage", "Faucet Installation", "Toilet Repair"],
       startingPrice: "₹399",
-      image: "https://images.pexels.com/photos/8486944/pexels-photo-8486944.jpeg?auto=compress&cs=tinysrgb&w=400&h=250&dpr=2"
+      image: "/download.jpeg"
     },
     {
       icon: <Paintbrush className="w-8 h-8 text-purple-500" />,
