@@ -172,9 +172,9 @@ function App() {
                   <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
                 </div>
                 <div>
-                  <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent">
-                    ServiceHub
-                  </span>
+                                     <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent">
+                     Servecure
+                   </span>
                   <div className="text-xs text-gray-500 font-medium">Trusted Services</div>
                 </div>
               </div>
@@ -758,10 +758,10 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-4 gap-8">
             <div className="lg:col-span-2">
-              <div className="flex items-center mb-4">
-                <Home className="w-8 h-8 text-blue-400 mr-2" />
-                <h3 className="text-2xl font-bold">ServiceHub</h3>
-              </div>
+                             <div className="flex items-center mb-4">
+                 <Home className="w-8 h-8 text-blue-400 mr-2" />
+                 <h3 className="text-2xl font-bold">Servecure</h3>
+               </div>
               <p className="text-gray-400 mb-6 max-w-md">
                 Your trusted partner for all home services. Connecting you with verified professionals for quality service delivery across India.
               </p>
@@ -806,10 +806,15 @@ function App() {
 
           <div className={`border-t ${isDarkMode ? 'border-gray-900' : 'border-gray-800'} mt-12 pt-8`}>
             <div className="flex flex-col md:flex-row justify-between items-center">
-              <p className="text-gray-400 mb-4 md:mb-0">&copy; 2025 ServiceHub. All rights reserved.</p>
-              <div className="flex items-center space-x-4 text-gray-400">
-                <HeadphonesIcon className="w-5 h-5" />
-                <span>24/7 Customer Support: 1800-123-4567</span>
+                             <p className="text-gray-400 mb-4 md:mb-0">&copy; 2025 Servecure. All rights reserved.</p>
+              <div className="flex flex-col md:flex-row items-center space-y-2 md:space-y-0 md:space-x-4 text-gray-400">
+                <div className="flex items-center space-x-2">
+                  <HeadphonesIcon className="w-5 h-5" />
+                  <span>24/7 Customer Support: 7056770758</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span>Email: Servecure@gmail.com</span>
+                </div>
               </div>
             </div>
           </div>
