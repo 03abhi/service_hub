@@ -71,6 +71,30 @@ function App() {
   const [myServicesLoading, setMyServicesLoading] = useState<boolean>(false);
   const [myServicesError, setMyServicesError] = useState<string | null>(null);
   const [myServicesFilter, setMyServicesFilter] = useState<'all' | 'requested' | 'ongoing' | 'completed'>('all');
+  // Career filters state
+  const [jobFilters, setJobFilters] = useState({
+    department: 'all',
+    location: 'all',
+    experience: 'all',
+    type: 'all',
+    search: ''
+  });
+  
+  // Chatbot state
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState([
+    {
+      id: 1,
+      type: 'bot',
+      message: 'Hi! I\'m your Servecure assistant. I can help you with information about our services, job opportunities, and general questions. How can I help you today?',
+      timestamp: new Date(),
+      intent: 'general',
+      sources: []
+    }
+  ]);
+  const [chatInput, setChatInput] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [chatError, setChatError] = useState(null);
   const googleButtonRef = useRef<HTMLDivElement | null>(null);
   // booking form service is stored within bookingForm state
   const [bookingForm, setBookingForm] = useState({
@@ -111,13 +135,14 @@ function App() {
   };
 
   // Simple hash-based routing
-  const getRouteFromHash = (): 'home' | 'profile' | 'my-services' => {
+  const getRouteFromHash = (): 'home' | 'profile' | 'my-services' | 'careers' => {
     const h = window.location.hash.replace('#', '');
     if (h.startsWith('/profile')) return 'profile';
     if (h.startsWith('/my-services')) return 'my-services';
+    if (h.startsWith('/careers')) return 'careers';
     return 'home';
   };
-  const [route, setRoute] = useState<'home' | 'profile' | 'my-services'>(() => {
+  const [route, setRoute] = useState<'home' | 'profile' | 'my-services' | 'careers'>(() => {
     if (typeof window === 'undefined') return 'home';
     return getRouteFromHash();
   });
@@ -130,7 +155,99 @@ function App() {
 
   const goToProfile = () => { window.location.hash = '/profile'; };
   const goToMyServices = () => { window.location.hash = '/my-services'; };
+  const goToCareers = () => { window.location.hash = '/careers'; };
   const goHome = () => { window.location.hash = '/'; };
+
+  // Chatbot functions
+  const toggleChat = () => {
+    setIsChatOpen(!isChatOpen);
+    setChatError(null);
+  };
+
+  const sendChatMessage = async (message: string) => {
+    if (!message.trim()) return;
+
+    const userMessage = {
+      id: Date.now(),
+      type: 'user',
+      message: message.trim(),
+      timestamp: new Date()
+    };
+
+    setChatMessages(prev => [...prev, userMessage]);
+    setChatInput('');
+    setIsTyping(true);
+    setChatError(null);
+
+    try {
+      const response = await fetch('http://localhost:8000/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: message.trim(),
+          user_id: idToken ? userProfile?.email : 'anonymous',
+          session_id: `session_${Date.now()}`
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      const botMessage = {
+        id: Date.now() + 1,
+        type: 'bot',
+        message: data.response,
+        timestamp: new Date(),
+        intent: data.intent,
+        sources: data.sources || [],
+        suggestedActions: data.suggested_actions || []
+      };
+
+      setChatMessages(prev => [...prev, botMessage]);
+
+    } catch (error) {
+      console.error('Chat error:', error);
+      
+      const errorMessage = {
+        id: Date.now() + 1,
+        type: 'bot',
+        message: 'I apologize, but I\'m having trouble connecting to my backend right now. Please make sure the Python backend is running (python start_server.py) or try asking your question again in a moment.',
+        timestamp: new Date(),
+        intent: 'error',
+        sources: []
+      };
+
+      setChatMessages(prev => [...prev, errorMessage]);
+      setChatError('Connection failed. Make sure backend is running on port 8000.');
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
+  const handleChatSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    sendChatMessage(chatInput);
+  };
+
+  const handleSuggestedAction = (action: string) => {
+    if (action.includes('job') || action.includes('career')) {
+      goToCareers();
+      setIsChatOpen(false);
+    } else if (action.includes('service')) {
+      // Scroll to services section
+      document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' });
+      setIsChatOpen(false);
+    } else if (action.includes('contact') || action.includes('support')) {
+      // You can add contact modal or scroll to footer
+      document.querySelector('footer')?.scrollIntoView({ behavior: 'smooth' });
+      setIsChatOpen(false);
+    }
+  };
 
   // Helpers
   const decodeJwtPayload = (token: string): any => {
@@ -599,6 +716,1359 @@ function App() {
     }
   ];
 
+  const jobListings = [
+    {
+      id: "JOB001",
+      title: "Senior Full Stack Developer",
+      department: "Engineering",
+      location: "Mumbai, Maharashtra",
+      type: "Full-time",
+      experience: "3-5 years",
+      salary: "₹12-18 LPA",
+      skills: ["React", "Node.js", "MongoDB", "AWS"],
+      description: "We are looking for a Senior Full Stack Developer to join our engineering team. You will be responsible for developing and maintaining our core platform, working with modern technologies like React, Node.js, and cloud services.",
+      requirements: [
+        "3+ years of experience in full-stack development",
+        "Proficiency in React, Node.js, and databases",
+        "Experience with cloud platforms (AWS/Azure)",
+        "Strong problem-solving skills",
+        "Experience with agile methodologies"
+      ],
+      responsibilities: [
+        "Develop and maintain web applications",
+        "Collaborate with cross-functional teams",
+        "Write clean, maintainable code",
+        "Participate in code reviews",
+        "Optimize applications for performance"
+      ],
+      postedDate: "2024-01-15",
+      isRemote: false
+    },
+    {
+      id: "JOB002",
+      title: "Product Manager",
+      department: "Product",
+      location: "Bangalore, Karnataka",
+      type: "Full-time",
+      experience: "4-6 years",
+      salary: "₹15-22 LPA",
+      skills: ["Product Strategy", "Analytics", "User Research", "Agile"],
+      description: "Join our product team to drive the strategy and development of our service marketplace platform. You'll work closely with engineering, design, and business teams to deliver exceptional user experiences.",
+      requirements: [
+        "4+ years of product management experience",
+        "Experience with B2C marketplaces",
+        "Strong analytical and problem-solving skills",
+        "Excellent communication skills",
+        "Experience with data-driven decision making"
+      ],
+      responsibilities: [
+        "Define product roadmap and strategy",
+        "Collaborate with engineering and design teams",
+        "Conduct user research and analysis",
+        "Monitor product metrics and KPIs",
+        "Manage product launches"
+      ],
+      postedDate: "2024-01-10",
+      isRemote: true
+    },
+    {
+      id: "JOB003",
+      title: "UX/UI Designer",
+      department: "Design",
+      location: "Delhi, Delhi",
+      type: "Full-time",
+      experience: "2-4 years",
+      salary: "₹8-12 LPA",
+      skills: ["Figma", "Adobe Creative Suite", "User Research", "Prototyping"],
+      description: "We're seeking a talented UX/UI Designer to create intuitive and engaging user experiences for our service platform. You'll work on designing user flows, interfaces, and interactive prototypes.",
+      requirements: [
+        "2+ years of UX/UI design experience",
+        "Proficiency in Figma and design tools",
+        "Strong portfolio showcasing design work",
+        "Understanding of user-centered design principles",
+        "Experience with responsive design"
+      ],
+      responsibilities: [
+        "Create user interface designs and prototypes",
+        "Conduct user research and usability testing",
+        "Collaborate with product and engineering teams",
+        "Maintain design systems and guidelines",
+        "Present design concepts to stakeholders"
+      ],
+      postedDate: "2024-01-08",
+      isRemote: false
+    },
+    {
+      id: "JOB004",
+      title: "Data Scientist",
+      department: "Data & Analytics",
+      location: "Hyderabad, Telangana",
+      type: "Full-time",
+      experience: "3-5 years",
+      salary: "₹14-20 LPA",
+      skills: ["Python", "Machine Learning", "SQL", "Statistics"],
+      description: "Join our data team to build machine learning models and analytics solutions that power our recommendation systems and business intelligence.",
+      requirements: [
+        "3+ years of data science experience",
+        "Strong programming skills in Python/R",
+        "Experience with ML frameworks (TensorFlow, PyTorch)",
+        "Knowledge of statistical analysis",
+        "Experience with big data technologies"
+      ],
+      responsibilities: [
+        "Develop machine learning models",
+        "Analyze large datasets for insights",
+        "Build recommendation systems",
+        "Create data visualizations and reports",
+        "Collaborate with engineering teams"
+      ],
+      postedDate: "2024-01-12",
+      isRemote: true
+    },
+    {
+      id: "JOB005",
+      title: "DevOps Engineer",
+      department: "Engineering",
+      location: "Pune, Maharashtra",
+      type: "Full-time",
+      experience: "3-6 years",
+      salary: "₹12-18 LPA",
+      skills: ["AWS", "Docker", "Kubernetes", "CI/CD"],
+      description: "We're looking for a DevOps Engineer to manage our cloud infrastructure and deployment pipelines. You'll work on scaling our platform and ensuring high availability.",
+      requirements: [
+        "3+ years of DevOps experience",
+        "Expertise in cloud platforms (AWS/Azure)",
+        "Experience with containerization (Docker, Kubernetes)",
+        "Knowledge of CI/CD pipelines",
+        "Scripting skills (Bash, Python)"
+      ],
+      responsibilities: [
+        "Manage cloud infrastructure",
+        "Set up and maintain CI/CD pipelines",
+        "Monitor system performance and reliability",
+        "Implement security best practices",
+        "Automate deployment processes"
+      ],
+      postedDate: "2024-01-14",
+      isRemote: false
+    },
+    {
+      id: "JOB006",
+      title: "Digital Marketing Manager",
+      department: "Marketing",
+      location: "Mumbai, Maharashtra",
+      type: "Full-time",
+      experience: "4-7 years",
+      salary: "₹10-15 LPA",
+      skills: ["Digital Marketing", "SEO", "SEM", "Analytics"],
+      description: "Lead our digital marketing efforts to drive user acquisition and brand awareness. You'll manage campaigns across multiple channels and optimize for growth.",
+      requirements: [
+        "4+ years of digital marketing experience",
+        "Experience with Google Ads and Facebook Ads",
+        "Strong analytical skills",
+        "Knowledge of SEO and content marketing",
+        "Experience with marketing automation tools"
+      ],
+      responsibilities: [
+        "Develop and execute digital marketing strategies",
+        "Manage paid advertising campaigns",
+        "Optimize website for search engines",
+        "Analyze campaign performance and ROI",
+        "Collaborate with content and design teams"
+      ],
+      postedDate: "2024-01-09",
+      isRemote: true
+    },
+    {
+      id: "JOB007",
+      title: "Customer Success Manager",
+      department: "Customer Success",
+      location: "Bangalore, Karnataka",
+      type: "Full-time",
+      experience: "2-4 years",
+      salary: "₹6-10 LPA",
+      skills: ["Customer Success", "Communication", "CRM", "Analytics"],
+      description: "Help our customers achieve success with our platform. You'll work directly with service providers and customers to ensure satisfaction and drive retention.",
+      requirements: [
+        "2+ years in customer success or account management",
+        "Excellent communication and interpersonal skills",
+        "Experience with CRM systems",
+        "Problem-solving mindset",
+        "Understanding of SaaS metrics"
+      ],
+      responsibilities: [
+        "Manage customer relationships and onboarding",
+        "Analyze customer health and usage metrics",
+        "Develop customer success strategies",
+        "Handle escalations and resolve issues",
+        "Drive product adoption and expansion"
+      ],
+      postedDate: "2024-01-11",
+      isRemote: false
+    },
+    {
+      id: "JOB008",
+      title: "Mobile App Developer (React Native)",
+      department: "Engineering",
+      location: "Chennai, Tamil Nadu",
+      type: "Full-time",
+      experience: "2-5 years",
+      salary: "₹8-14 LPA",
+      skills: ["React Native", "JavaScript", "iOS", "Android"],
+      description: "Join our mobile team to build and enhance our React Native applications for iOS and Android platforms.",
+      requirements: [
+        "2+ years of React Native development",
+        "Experience with mobile app deployment",
+        "Knowledge of native mobile development",
+        "Understanding of mobile UX principles",
+        "Experience with app store optimization"
+      ],
+      responsibilities: [
+        "Develop mobile applications using React Native",
+        "Optimize app performance and user experience",
+        "Collaborate with design and backend teams",
+        "Handle app store submissions and updates",
+        "Debug and resolve mobile-specific issues"
+      ],
+      postedDate: "2024-01-13",
+      isRemote: true
+    },
+    {
+      id: "JOB009",
+      title: "Business Analyst",
+      department: "Strategy",
+      location: "Gurgaon, Haryana",
+      type: "Full-time",
+      experience: "3-5 years",
+      salary: "₹9-13 LPA",
+      skills: ["Business Analysis", "SQL", "Excel", "Tableau"],
+      description: "Analyze business processes and market trends to drive strategic decisions. You'll work with various teams to identify opportunities and improvements.",
+      requirements: [
+        "3+ years of business analysis experience",
+        "Strong analytical and quantitative skills",
+        "Proficiency in SQL and Excel",
+        "Experience with data visualization tools",
+        "Excellent presentation skills"
+      ],
+      responsibilities: [
+        "Conduct market research and competitive analysis",
+        "Analyze business metrics and KPIs",
+        "Create reports and presentations for leadership",
+        "Identify process improvement opportunities",
+        "Support strategic planning initiatives"
+      ],
+      postedDate: "2024-01-07",
+      isRemote: false
+    },
+    {
+      id: "JOB010",
+      title: "Quality Assurance Engineer",
+      department: "Engineering",
+      location: "Noida, Uttar Pradesh",
+      type: "Full-time",
+      experience: "2-4 years",
+      salary: "₹6-10 LPA",
+      skills: ["Testing", "Automation", "Selenium", "API Testing"],
+      description: "Ensure the quality of our software products through comprehensive testing strategies. You'll work on both manual and automated testing.",
+      requirements: [
+        "2+ years of QA testing experience",
+        "Experience with test automation tools",
+        "Knowledge of API testing",
+        "Understanding of agile testing methodologies",
+        "Attention to detail and analytical thinking"
+      ],
+      responsibilities: [
+        "Design and execute test plans and cases",
+        "Develop automated test scripts",
+        "Perform API and integration testing",
+        "Track and report bugs and issues",
+        "Collaborate with development teams"
+      ],
+      postedDate: "2024-01-06",
+      isRemote: false
+    },
+    {
+      id: "JOB011",
+      title: "HR Business Partner",
+      department: "Human Resources",
+      location: "Mumbai, Maharashtra",
+      type: "Full-time",
+      experience: "5-8 years",
+      salary: "₹12-18 LPA",
+      skills: ["HR Strategy", "Employee Relations", "Recruitment", "Performance Management"],
+      description: "Partner with business leaders to drive HR strategies and initiatives. You'll focus on talent management, employee engagement, and organizational development.",
+      requirements: [
+        "5+ years of HR experience",
+        "Experience as an HR Business Partner",
+        "Strong understanding of employment law",
+        "Excellent communication and consulting skills",
+        "Experience with HRIS systems"
+      ],
+      responsibilities: [
+        "Partner with business leaders on HR strategy",
+        "Manage employee relations and performance issues",
+        "Drive talent acquisition and retention strategies",
+        "Develop and implement HR policies",
+        "Support organizational change initiatives"
+      ],
+      postedDate: "2024-01-05",
+      isRemote: true
+    },
+    {
+      id: "JOB012",
+      title: "Content Marketing Specialist",
+      department: "Marketing",
+      location: "Delhi, Delhi",
+      type: "Full-time",
+      experience: "2-4 years",
+      salary: "₹5-8 LPA",
+      skills: ["Content Writing", "SEO", "Social Media", "Analytics"],
+      description: "Create compelling content that drives engagement and supports our marketing goals. You'll work on blog posts, social media, and marketing materials.",
+      requirements: [
+        "2+ years of content marketing experience",
+        "Excellent writing and editing skills",
+        "Knowledge of SEO best practices",
+        "Experience with content management systems",
+        "Understanding of social media platforms"
+      ],
+      responsibilities: [
+        "Create and edit marketing content",
+        "Develop content strategies and calendars",
+        "Optimize content for search engines",
+        "Manage social media content",
+        "Analyze content performance metrics"
+      ],
+      postedDate: "2024-01-04",
+      isRemote: true
+    },
+    {
+      id: "JOB013",
+      title: "Financial Analyst",
+      department: "Finance",
+      location: "Bangalore, Karnataka",
+      type: "Full-time",
+      experience: "3-5 years",
+      salary: "₹8-12 LPA",
+      skills: ["Financial Analysis", "Excel", "Financial Modeling", "SQL"],
+      description: "Support financial planning and analysis for the company. You'll work on budgeting, forecasting, and financial reporting.",
+      requirements: [
+        "3+ years of financial analysis experience",
+        "Strong skills in Excel and financial modeling",
+        "Knowledge of accounting principles",
+        "Experience with financial reporting",
+        "Analytical and detail-oriented mindset"
+      ],
+      responsibilities: [
+        "Prepare financial reports and analysis",
+        "Support budgeting and forecasting processes",
+        "Analyze business performance and metrics",
+        "Create financial models and projections",
+        "Assist with investor relations activities"
+      ],
+      postedDate: "2024-01-03",
+      isRemote: false
+    },
+    {
+      id: "JOB014",
+      title: "Sales Development Representative",
+      department: "Sales",
+      location: "Mumbai, Maharashtra",
+      type: "Full-time",
+      experience: "1-3 years",
+      salary: "₹4-7 LPA",
+      skills: ["Sales", "Lead Generation", "CRM", "Communication"],
+      description: "Generate qualified leads and support our sales team. You'll be responsible for prospecting, qualifying leads, and setting appointments.",
+      requirements: [
+        "1+ years of sales or lead generation experience",
+        "Excellent communication and interpersonal skills",
+        "Experience with CRM systems",
+        "Goal-oriented and self-motivated",
+        "Understanding of B2B sales processes"
+      ],
+      responsibilities: [
+        "Generate and qualify sales leads",
+        "Conduct outbound prospecting activities",
+        "Set appointments for account executives",
+        "Maintain accurate records in CRM",
+        "Collaborate with marketing team on campaigns"
+      ],
+      postedDate: "2024-01-02",
+      isRemote: false
+    },
+    {
+      id: "JOB015",
+      title: "Backend Developer (Python)",
+      department: "Engineering",
+      location: "Hyderabad, Telangana",
+      type: "Full-time",
+      experience: "2-4 years",
+      salary: "₹8-12 LPA",
+      skills: ["Python", "Django", "PostgreSQL", "API Development"],
+      description: "Develop and maintain our backend services and APIs. You'll work with Python, Django, and various databases to build scalable solutions.",
+      requirements: [
+        "2+ years of Python development experience",
+        "Experience with Django or Flask frameworks",
+        "Knowledge of database design and optimization",
+        "Understanding of API design principles",
+        "Experience with version control (Git)"
+      ],
+      responsibilities: [
+        "Develop backend services and APIs",
+        "Optimize database queries and performance",
+        "Write unit tests and documentation",
+        "Collaborate with frontend developers",
+        "Participate in code reviews and architecture discussions"
+      ],
+      postedDate: "2024-01-01",
+      isRemote: true
+    },
+    {
+      id: "JOB016",
+      title: "Cybersecurity Analyst",
+      department: "Security",
+      location: "Pune, Maharashtra",
+      type: "Full-time",
+      experience: "3-6 years",
+      salary: "₹10-15 LPA",
+      skills: ["Cybersecurity", "Network Security", "SIEM", "Incident Response"],
+      description: "Protect our systems and data from security threats. You'll monitor security events, investigate incidents, and implement security measures.",
+      requirements: [
+        "3+ years of cybersecurity experience",
+        "Knowledge of security frameworks and standards",
+        "Experience with SIEM tools",
+        "Understanding of network security principles",
+        "Relevant security certifications preferred"
+      ],
+      responsibilities: [
+        "Monitor security events and alerts",
+        "Investigate and respond to security incidents",
+        "Implement security policies and procedures",
+        "Conduct security assessments and audits",
+        "Provide security awareness training"
+      ],
+      postedDate: "2023-12-30",
+      isRemote: false
+    },
+    {
+      id: "JOB017",
+      title: "Operations Manager",
+      department: "Operations",
+      location: "Chennai, Tamil Nadu",
+      type: "Full-time",
+      experience: "4-7 years",
+      salary: "₹12-18 LPA",
+      skills: ["Operations Management", "Process Improvement", "Leadership", "Analytics"],
+      description: "Lead our operations team to ensure efficient service delivery. You'll focus on process optimization, team management, and operational excellence.",
+      requirements: [
+        "4+ years of operations management experience",
+        "Strong leadership and team management skills",
+        "Experience with process improvement methodologies",
+        "Analytical and problem-solving abilities",
+        "Knowledge of service industry operations"
+      ],
+      responsibilities: [
+        "Manage day-to-day operations",
+        "Lead and develop operations team",
+        "Optimize processes and workflows",
+        "Monitor operational metrics and KPIs",
+        "Implement quality assurance programs"
+      ],
+      postedDate: "2023-12-29",
+      isRemote: false
+    },
+    {
+      id: "JOB018",
+      title: "Frontend Developer (Vue.js)",
+      department: "Engineering",
+      location: "Bangalore, Karnataka",
+      type: "Full-time",
+      experience: "2-4 years",
+      salary: "₹7-11 LPA",
+      skills: ["Vue.js", "JavaScript", "CSS", "Frontend Development"],
+      description: "Build responsive and interactive user interfaces using Vue.js. You'll work closely with our design team to implement modern web applications.",
+      requirements: [
+        "2+ years of frontend development experience",
+        "Proficiency in Vue.js and JavaScript",
+        "Experience with CSS frameworks",
+        "Understanding of responsive design principles",
+        "Knowledge of frontend build tools"
+      ],
+      responsibilities: [
+        "Develop user interfaces using Vue.js",
+        "Implement responsive designs",
+        "Optimize frontend performance",
+        "Collaborate with backend developers on API integration",
+        "Participate in design reviews and technical discussions"
+      ],
+      postedDate: "2023-12-28",
+      isRemote: true
+    },
+    {
+      id: "JOB019",
+      title: "Legal Counsel",
+      department: "Legal",
+      location: "Delhi, Delhi",
+      type: "Full-time",
+      experience: "5-8 years",
+      salary: "₹15-22 LPA",
+      skills: ["Corporate Law", "Contract Law", "Compliance", "Risk Management"],
+      description: "Provide legal support and guidance for business operations. You'll handle contracts, compliance, and regulatory matters.",
+      requirements: [
+        "5+ years of legal experience",
+        "Law degree from recognized institution",
+        "Experience in corporate and contract law",
+        "Knowledge of technology and startup legal issues",
+        "Strong negotiation and drafting skills"
+      ],
+      responsibilities: [
+        "Draft and review legal documents and contracts",
+        "Provide legal advice on business matters",
+        "Ensure regulatory compliance",
+        "Manage legal risks and disputes",
+        "Support corporate governance activities"
+      ],
+      postedDate: "2023-12-27",
+      isRemote: false
+    },
+    {
+      id: "JOB020",
+      title: "Business Development Executive",
+      department: "Business Development",
+      location: "Mumbai, Maharashtra",
+      type: "Full-time",
+      experience: "2-5 years",
+      salary: "₹6-10 LPA",
+      skills: ["Business Development", "Sales", "Relationship Management", "Negotiation"],
+      description: "Drive business growth through strategic partnerships and new business opportunities. You'll identify and develop key relationships.",
+      requirements: [
+        "2+ years of business development experience",
+        "Strong sales and negotiation skills",
+        "Experience in B2B relationship management",
+        "Excellent communication and presentation skills",
+        "Understanding of marketplace business models"
+      ],
+      responsibilities: [
+        "Identify new business opportunities",
+        "Develop strategic partnerships",
+        "Negotiate contracts and agreements",
+        "Manage key account relationships",
+        "Support market expansion initiatives"
+      ],
+      postedDate: "2023-12-26",
+      isRemote: false
+    },
+    {
+      id: "JOB021",
+      title: "Machine Learning Engineer",
+      department: "Data & Analytics",
+      location: "Bangalore, Karnataka",
+      type: "Full-time",
+      experience: "3-6 years",
+      salary: "₹15-25 LPA",
+      skills: ["Machine Learning", "Python", "TensorFlow", "MLOps"],
+      description: "Build and deploy machine learning models to improve our platform's intelligence. You'll work on recommendation systems, demand forecasting, and optimization algorithms.",
+      requirements: [
+        "3+ years of ML engineering experience",
+        "Strong programming skills in Python",
+        "Experience with ML frameworks and libraries",
+        "Knowledge of MLOps and model deployment",
+        "Understanding of distributed computing"
+      ],
+      responsibilities: [
+        "Design and implement ML models",
+        "Deploy models to production systems",
+        "Monitor model performance and accuracy",
+        "Collaborate with data science team",
+        "Optimize algorithms for scale and performance"
+      ],
+      postedDate: "2023-12-25",
+      isRemote: true
+    },
+    {
+      id: "JOB022",
+      title: "Graphic Designer",
+      department: "Design",
+      location: "Mumbai, Maharashtra",
+      type: "Full-time",
+      experience: "2-4 years",
+      salary: "₹4-7 LPA",
+      skills: ["Graphic Design", "Adobe Creative Suite", "Branding", "Typography"],
+      description: "Create visual content for marketing campaigns, social media, and brand materials. You'll work on both digital and print designs.",
+      requirements: [
+        "2+ years of graphic design experience",
+        "Proficiency in Adobe Creative Suite",
+        "Strong portfolio showcasing design work",
+        "Understanding of branding and typography",
+        "Knowledge of print and digital design requirements"
+      ],
+      responsibilities: [
+        "Create marketing and promotional materials",
+        "Design social media graphics and content",
+        "Maintain brand consistency across materials",
+        "Collaborate with marketing and product teams",
+        "Support event and campaign design needs"
+      ],
+      postedDate: "2023-12-24",
+      isRemote: false
+    },
+    {
+      id: "JOB023",
+      title: "Technical Writer",
+      department: "Documentation",
+      location: "Hyderabad, Telangana",
+      type: "Full-time",
+      experience: "2-4 years",
+      salary: "₹5-9 LPA",
+      skills: ["Technical Writing", "Documentation", "API Documentation", "Content Strategy"],
+      description: "Create clear and comprehensive technical documentation for our APIs, products, and internal processes.",
+      requirements: [
+        "2+ years of technical writing experience",
+        "Experience with API documentation",
+        "Strong writing and editing skills",
+        "Understanding of software development processes",
+        "Knowledge of documentation tools and platforms"
+      ],
+      responsibilities: [
+        "Write and maintain technical documentation",
+        "Create API documentation and guides",
+        "Collaborate with engineering teams",
+        "Develop content standards and style guides",
+        "Update documentation based on product changes"
+      ],
+      postedDate: "2023-12-23",
+      isRemote: true
+    },
+    {
+      id: "JOB024",
+      title: "Supply Chain Analyst",
+      department: "Operations",
+      location: "Delhi, Delhi",
+      type: "Full-time",
+      experience: "3-5 years",
+      salary: "₹8-12 LPA",
+      skills: ["Supply Chain", "Analytics", "Logistics", "Process Optimization"],
+      description: "Optimize our supply chain and logistics operations. You'll analyze data to improve efficiency and reduce costs.",
+      requirements: [
+        "3+ years of supply chain experience",
+        "Strong analytical and quantitative skills",
+        "Knowledge of logistics and operations",
+        "Experience with supply chain software",
+        "Understanding of demand planning"
+      ],
+      responsibilities: [
+        "Analyze supply chain performance",
+        "Optimize logistics and distribution",
+        "Manage vendor relationships",
+        "Forecast demand and inventory needs",
+        "Implement process improvements"
+      ],
+      postedDate: "2023-12-22",
+      isRemote: false
+    },
+    {
+      id: "JOB025",
+      title: "Cloud Architect",
+      department: "Engineering",
+      location: "Pune, Maharashtra",
+      type: "Full-time",
+      experience: "6-10 years",
+      salary: "₹20-30 LPA",
+      skills: ["Cloud Architecture", "AWS", "Microservices", "System Design"],
+      description: "Design and implement scalable cloud infrastructure. You'll lead architectural decisions and ensure our platform can scale to millions of users.",
+      requirements: [
+        "6+ years of cloud architecture experience",
+        "Expertise in AWS/Azure cloud platforms",
+        "Experience with microservices architecture",
+        "Strong system design skills",
+        "Knowledge of security and compliance"
+      ],
+      responsibilities: [
+        "Design cloud infrastructure architecture",
+        "Lead technical architecture decisions",
+        "Ensure scalability and performance",
+        "Implement security best practices",
+        "Mentor engineering teams"
+      ],
+      postedDate: "2023-12-21",
+      isRemote: true
+    },
+    {
+      id: "JOB026",
+      title: "Customer Support Specialist",
+      department: "Customer Support",
+      location: "Bangalore, Karnataka",
+      type: "Full-time",
+      experience: "1-3 years",
+      salary: "₹3-5 LPA",
+      skills: ["Customer Support", "Communication", "Problem Solving", "CRM"],
+      description: "Provide excellent customer support to our users and service providers. You'll handle inquiries, resolve issues, and ensure customer satisfaction.",
+      requirements: [
+        "1+ years of customer support experience",
+        "Excellent communication skills",
+        "Problem-solving mindset",
+        "Experience with support ticketing systems",
+        "Patience and empathy in customer interactions"
+      ],
+      responsibilities: [
+        "Handle customer inquiries via phone, email, and chat",
+        "Resolve customer issues and complaints",
+        "Maintain customer records and documentation",
+        "Escalate complex issues to appropriate teams",
+        "Provide feedback on product improvements"
+      ],
+      postedDate: "2023-12-20",
+      isRemote: false
+    },
+    {
+      id: "JOB027",
+      title: "Social Media Manager",
+      department: "Marketing",
+      location: "Mumbai, Maharashtra",
+      type: "Full-time",
+      experience: "2-4 years",
+      salary: "₹5-8 LPA",
+      skills: ["Social Media", "Content Creation", "Community Management", "Analytics"],
+      description: "Manage our social media presence across all platforms. You'll create engaging content and build our online community.",
+      requirements: [
+        "2+ years of social media management experience",
+        "Experience with major social media platforms",
+        "Content creation and copywriting skills",
+        "Knowledge of social media analytics",
+        "Understanding of social media advertising"
+      ],
+      responsibilities: [
+        "Manage social media accounts and content",
+        "Create engaging social media campaigns",
+        "Monitor and respond to community feedback",
+        "Analyze social media performance metrics",
+        "Collaborate with design and marketing teams"
+      ],
+      postedDate: "2023-12-19",
+      isRemote: true
+    },
+    {
+      id: "JOB028",
+      title: "iOS Developer",
+      department: "Engineering",
+      location: "Chennai, Tamil Nadu",
+      type: "Full-time",
+      experience: "3-5 years",
+      salary: "₹10-15 LPA",
+      skills: ["iOS", "Swift", "Objective-C", "Mobile Development"],
+      description: "Develop native iOS applications with great user experiences. You'll work on our iOS app and contribute to mobile architecture decisions.",
+      requirements: [
+        "3+ years of iOS development experience",
+        "Proficiency in Swift and Objective-C",
+        "Experience with iOS frameworks and APIs",
+        "Knowledge of App Store guidelines",
+        "Understanding of mobile design principles"
+      ],
+      responsibilities: [
+        "Develop and maintain iOS applications",
+        "Implement new features and functionality",
+        "Optimize app performance and user experience",
+        "Collaborate with design and backend teams",
+        "Handle app store submissions and updates"
+      ],
+      postedDate: "2023-12-18",
+      isRemote: false
+    },
+    {
+      id: "JOB029",
+      title: "Partnership Manager",
+      department: "Business Development",
+      location: "Delhi, Delhi",
+      type: "Full-time",
+      experience: "4-6 years",
+      salary: "₹12-18 LPA",
+      skills: ["Partnership Management", "Business Development", "Negotiation", "Strategy"],
+      description: "Build and manage strategic partnerships that drive business growth. You'll work with key partners and develop new relationship opportunities.",
+      requirements: [
+        "4+ years of partnership management experience",
+        "Strong relationship building skills",
+        "Experience in B2B negotiations",
+        "Strategic thinking and planning abilities",
+        "Knowledge of marketplace or platform businesses"
+      ],
+      responsibilities: [
+        "Develop and manage strategic partnerships",
+        "Negotiate partnership agreements",
+        "Monitor partnership performance and ROI",
+        "Identify new partnership opportunities",
+        "Collaborate with internal teams on integration"
+      ],
+      postedDate: "2023-12-17",
+      isRemote: false
+    },
+    {
+      id: "JOB030",
+      title: "Database Administrator",
+      department: "Engineering",
+      location: "Hyderabad, Telangana",
+      type: "Full-time",
+      experience: "4-7 years",
+      salary: "₹12-18 LPA",
+      skills: ["Database Administration", "SQL", "PostgreSQL", "MongoDB"],
+      description: "Manage and optimize our database systems. You'll ensure data integrity, performance, and availability across our platform.",
+      requirements: [
+        "4+ years of database administration experience",
+        "Expertise in SQL and database optimization",
+        "Experience with PostgreSQL and MongoDB",
+        "Knowledge of backup and recovery procedures",
+        "Understanding of database security"
+      ],
+      responsibilities: [
+        "Manage database systems and performance",
+        "Implement backup and recovery strategies",
+        "Monitor database health and security",
+        "Optimize queries and database design",
+        "Support application development teams"
+      ],
+      postedDate: "2023-12-16",
+      isRemote: true
+    },
+    {
+      id: "JOB031",
+      title: "Event Coordinator",
+      department: "Marketing",
+      location: "Mumbai, Maharashtra",
+      type: "Full-time",
+      experience: "2-4 years",
+      salary: "₹4-7 LPA",
+      skills: ["Event Management", "Project Management", "Vendor Management", "Communication"],
+      description: "Plan and execute company events, conferences, and marketing activations. You'll manage all aspects of event planning and execution.",
+      requirements: [
+        "2+ years of event management experience",
+        "Strong project management skills",
+        "Experience with vendor coordination",
+        "Excellent organizational abilities",
+        "Budget management experience"
+      ],
+      responsibilities: [
+        "Plan and coordinate company events",
+        "Manage event budgets and timelines",
+        "Coordinate with vendors and suppliers",
+        "Handle event logistics and setup",
+        "Measure event success and ROI"
+      ],
+      postedDate: "2023-12-15",
+      isRemote: false
+    },
+    {
+      id: "JOB032",
+      title: "Android Developer",
+      department: "Engineering",
+      location: "Bangalore, Karnataka",
+      type: "Full-time",
+      experience: "3-5 years",
+      salary: "₹9-14 LPA",
+      skills: ["Android", "Kotlin", "Java", "Mobile Development"],
+      description: "Build amazing Android applications that delight our users. You'll work on native Android development and mobile architecture.",
+      requirements: [
+        "3+ years of Android development experience",
+        "Proficiency in Kotlin and Java",
+        "Experience with Android SDK and frameworks",
+        "Knowledge of material design principles",
+        "Understanding of mobile app optimization"
+      ],
+      responsibilities: [
+        "Develop and maintain Android applications",
+        "Implement new features and improvements",
+        "Optimize app performance and battery usage",
+        "Collaborate with designers and backend developers",
+        "Ensure app quality through testing"
+      ],
+      postedDate: "2023-12-14",
+      isRemote: true
+    },
+    {
+      id: "JOB033",
+      title: "Procurement Specialist",
+      department: "Finance",
+      location: "Pune, Maharashtra",
+      type: "Full-time",
+      experience: "3-5 years",
+      salary: "₹7-11 LPA",
+      skills: ["Procurement", "Vendor Management", "Negotiation", "Cost Analysis"],
+      description: "Manage procurement processes and vendor relationships. You'll optimize costs while ensuring quality and compliance.",
+      requirements: [
+        "3+ years of procurement experience",
+        "Strong negotiation skills",
+        "Experience with vendor management",
+        "Knowledge of procurement processes",
+        "Analytical and cost optimization skills"
+      ],
+      responsibilities: [
+        "Manage procurement processes and policies",
+        "Negotiate contracts with vendors",
+        "Analyze costs and identify savings opportunities",
+        "Ensure compliance with procurement guidelines",
+        "Maintain vendor relationships and performance"
+      ],
+      postedDate: "2023-12-13",
+      isRemote: false
+    },
+    {
+      id: "JOB034",
+      title: "Research Analyst",
+      department: "Strategy",
+      location: "Delhi, Delhi",
+      type: "Full-time",
+      experience: "2-4 years",
+      salary: "₹6-10 LPA",
+      skills: ["Market Research", "Data Analysis", "Research Methodology", "Reporting"],
+      description: "Conduct market research and competitive analysis to support business decisions. You'll gather insights and present findings to leadership.",
+      requirements: [
+        "2+ years of research experience",
+        "Strong analytical and research skills",
+        "Experience with research methodologies",
+        "Proficiency in data analysis tools",
+        "Excellent written and verbal communication"
+      ],
+      responsibilities: [
+        "Conduct market and competitive research",
+        "Analyze industry trends and opportunities",
+        "Prepare research reports and presentations",
+        "Support strategic planning initiatives",
+        "Monitor market developments"
+      ],
+      postedDate: "2023-12-12",
+      isRemote: true
+    },
+    {
+      id: "JOB035",
+      title: "Network Engineer",
+      department: "IT",
+      location: "Chennai, Tamil Nadu",
+      type: "Full-time",
+      experience: "3-6 years",
+      salary: "₹8-13 LPA",
+      skills: ["Network Engineering", "Cisco", "Network Security", "Troubleshooting"],
+      description: "Design, implement, and maintain our network infrastructure. You'll ensure reliable and secure network connectivity.",
+      requirements: [
+        "3+ years of network engineering experience",
+        "Knowledge of network protocols and technologies",
+        "Experience with Cisco and network equipment",
+        "Understanding of network security principles",
+        "Troubleshooting and problem-solving skills"
+      ],
+      responsibilities: [
+        "Design and maintain network infrastructure",
+        "Monitor network performance and security",
+        "Troubleshoot network issues and outages",
+        "Implement network security measures",
+        "Support network upgrades and expansions"
+      ],
+      postedDate: "2023-12-11",
+      isRemote: false
+    },
+    {
+      id: "JOB036",
+      title: "Training Specialist",
+      department: "Human Resources",
+      location: "Bangalore, Karnataka",
+      type: "Full-time",
+      experience: "3-5 years",
+      salary: "₹6-10 LPA",
+      skills: ["Training Development", "Adult Learning", "Curriculum Design", "Presentation"],
+      description: "Design and deliver training programs for employees and service providers. You'll focus on skill development and knowledge transfer.",
+      requirements: [
+        "3+ years of training and development experience",
+        "Experience in curriculum design",
+        "Knowledge of adult learning principles",
+        "Strong presentation and facilitation skills",
+        "Experience with e-learning platforms"
+      ],
+      responsibilities: [
+        "Design and develop training programs",
+        "Deliver training sessions and workshops",
+        "Assess training effectiveness and outcomes",
+        "Maintain training materials and resources",
+        "Support onboarding and skill development"
+      ],
+      postedDate: "2023-12-10",
+      isRemote: false
+    },
+    {
+      id: "JOB037",
+      title: "Compliance Officer",
+      department: "Legal",
+      location: "Mumbai, Maharashtra",
+      type: "Full-time",
+      experience: "4-6 years",
+      salary: "₹10-15 LPA",
+      skills: ["Compliance", "Risk Management", "Regulatory Affairs", "Audit"],
+      description: "Ensure compliance with laws, regulations, and internal policies. You'll develop compliance programs and monitor adherence.",
+      requirements: [
+        "4+ years of compliance experience",
+        "Knowledge of regulatory requirements",
+        "Experience with compliance auditing",
+        "Strong attention to detail",
+        "Risk assessment and management skills"
+      ],
+      responsibilities: [
+        "Develop and implement compliance programs",
+        "Monitor compliance with regulations",
+        "Conduct compliance audits and assessments",
+        "Provide compliance training and guidance",
+        "Report on compliance status and issues"
+      ],
+      postedDate: "2023-12-09",
+      isRemote: false
+    },
+    {
+      id: "JOB038",
+      title: "Video Editor",
+      department: "Marketing",
+      location: "Delhi, Delhi",
+      type: "Full-time",
+      experience: "2-4 years",
+      salary: "₹4-7 LPA",
+      skills: ["Video Editing", "Adobe Premiere", "After Effects", "Motion Graphics"],
+      description: "Create engaging video content for marketing campaigns and social media. You'll work on promotional videos, tutorials, and brand content.",
+      requirements: [
+        "2+ years of video editing experience",
+        "Proficiency in Adobe Premiere and After Effects",
+        "Understanding of video production workflows",
+        "Creative storytelling abilities",
+        "Knowledge of motion graphics"
+      ],
+      responsibilities: [
+        "Edit marketing and promotional videos",
+        "Create motion graphics and animations",
+        "Collaborate with creative and marketing teams",
+        "Optimize videos for different platforms",
+        "Maintain video asset library"
+      ],
+      postedDate: "2023-12-08",
+      isRemote: true
+    },
+    {
+      id: "JOB039",
+      title: "System Administrator",
+      department: "IT",
+      location: "Hyderabad, Telangana",
+      type: "Full-time",
+      experience: "3-5 years",
+      salary: "₹7-11 LPA",
+      skills: ["System Administration", "Linux", "Windows Server", "Automation"],
+      description: "Manage and maintain our IT systems and infrastructure. You'll ensure system reliability, security, and performance.",
+      requirements: [
+        "3+ years of system administration experience",
+        "Experience with Linux and Windows servers",
+        "Knowledge of system monitoring and automation",
+        "Understanding of security best practices",
+        "Scripting and automation skills"
+      ],
+      responsibilities: [
+        "Manage servers and IT infrastructure",
+        "Monitor system performance and availability",
+        "Implement security patches and updates",
+        "Automate routine administrative tasks",
+        "Support user access and permissions"
+      ],
+      postedDate: "2023-12-07",
+      isRemote: false
+    },
+    {
+      id: "JOB040",
+      title: "Community Manager",
+      department: "Marketing",
+      location: "Bangalore, Karnataka",
+      type: "Full-time",
+      experience: "2-4 years",
+      salary: "₹4-7 LPA",
+      skills: ["Community Management", "Social Media", "Engagement", "Content Creation"],
+      description: "Build and engage our online community. You'll foster relationships with users, service providers, and brand advocates.",
+      requirements: [
+        "2+ years of community management experience",
+        "Strong social media and communication skills",
+        "Experience with community platforms",
+        "Creative content creation abilities",
+        "Understanding of community building strategies"
+      ],
+      responsibilities: [
+        "Manage online community platforms",
+        "Engage with community members",
+        "Create community content and campaigns",
+        "Monitor community sentiment and feedback",
+        "Organize community events and initiatives"
+      ],
+      postedDate: "2023-12-06",
+      isRemote: true
+    },
+    {
+      id: "JOB041",
+      title: "Account Manager",
+      department: "Sales",
+      location: "Mumbai, Maharashtra",
+      type: "Full-time",
+      experience: "3-5 years",
+      salary: "₹8-12 LPA",
+      skills: ["Account Management", "Relationship Building", "Sales", "CRM"],
+      description: "Manage key client relationships and drive account growth. You'll work with enterprise clients to ensure satisfaction and expansion.",
+      requirements: [
+        "3+ years of account management experience",
+        "Strong relationship building skills",
+        "Experience with B2B sales",
+        "Knowledge of CRM systems",
+        "Goal-oriented and results-driven"
+      ],
+      responsibilities: [
+        "Manage key client accounts",
+        "Drive account growth and expansion",
+        "Maintain strong client relationships",
+        "Identify upselling and cross-selling opportunities",
+        "Collaborate with internal teams on delivery"
+      ],
+      postedDate: "2023-12-05",
+      isRemote: false
+    },
+    {
+      id: "JOB042",
+      title: "Performance Marketing Specialist",
+      department: "Marketing",
+      location: "Delhi, Delhi",
+      type: "Full-time",
+      experience: "2-4 years",
+      salary: "₹6-10 LPA",
+      skills: ["Performance Marketing", "Google Ads", "Facebook Ads", "Analytics"],
+      description: "Drive customer acquisition through performance marketing campaigns. You'll optimize ad spend and improve conversion rates.",
+      requirements: [
+        "2+ years of performance marketing experience",
+        "Experience with Google Ads and Facebook Ads",
+        "Strong analytical and optimization skills",
+        "Knowledge of conversion tracking",
+        "Understanding of marketing funnels"
+      ],
+      responsibilities: [
+        "Manage performance marketing campaigns",
+        "Optimize ad spend and ROI",
+        "Analyze campaign performance data",
+        "Test and iterate on ad creatives",
+        "Report on marketing metrics and KPIs"
+      ],
+      postedDate: "2023-12-04",
+      isRemote: true
+    },
+    {
+      id: "JOB043",
+      title: "IT Support Specialist",
+      department: "IT",
+      location: "Chennai, Tamil Nadu",
+      type: "Full-time",
+      experience: "2-4 years",
+      salary: "₹4-7 LPA",
+      skills: ["IT Support", "Troubleshooting", "Hardware", "Software"],
+      description: "Provide technical support to employees and maintain IT equipment. You'll handle hardware, software, and network support issues.",
+      requirements: [
+        "2+ years of IT support experience",
+        "Knowledge of hardware and software troubleshooting",
+        "Experience with Windows and Mac systems",
+        "Strong problem-solving skills",
+        "Customer service orientation"
+      ],
+      responsibilities: [
+        "Provide technical support to employees",
+        "Troubleshoot hardware and software issues",
+        "Maintain IT inventory and equipment",
+        "Set up new employee workstations",
+        "Document support procedures and solutions"
+      ],
+      postedDate: "2023-12-03",
+      isRemote: false
+    },
+    {
+      id: "JOB044",
+      title: "Risk Analyst",
+      department: "Risk Management",
+      location: "Pune, Maharashtra",
+      type: "Full-time",
+      experience: "3-5 years",
+      salary: "₹8-12 LPA",
+      skills: ["Risk Analysis", "Financial Modeling", "Compliance", "Analytics"],
+      description: "Assess and manage various business risks. You'll develop risk models and implement risk mitigation strategies.",
+      requirements: [
+        "3+ years of risk analysis experience",
+        "Strong analytical and modeling skills",
+        "Knowledge of risk management frameworks",
+        "Experience with financial analysis",
+        "Understanding of regulatory requirements"
+      ],
+      responsibilities: [
+        "Assess business and operational risks",
+        "Develop risk models and metrics",
+        "Monitor risk exposure and trends",
+        "Implement risk mitigation strategies",
+        "Report on risk status to management"
+      ],
+      postedDate: "2023-12-02",
+      isRemote: false
+    },
+    {
+      id: "JOB045",
+      title: "UX Researcher",
+      department: "Design",
+      location: "Bangalore, Karnataka",
+      type: "Full-time",
+      experience: "2-4 years",
+      salary: "₹7-11 LPA",
+      skills: ["UX Research", "User Testing", "Research Methods", "Analytics"],
+      description: "Conduct user research to inform product decisions. You'll design studies, gather insights, and present findings to product teams.",
+      requirements: [
+        "2+ years of UX research experience",
+        "Experience with research methodologies",
+        "Knowledge of user testing and analytics",
+        "Strong analytical and presentation skills",
+        "Understanding of design thinking"
+      ],
+      responsibilities: [
+        "Design and conduct user research studies",
+        "Analyze user behavior and feedback",
+        "Present research findings and recommendations",
+        "Collaborate with design and product teams",
+        "Maintain user research repository"
+      ],
+      postedDate: "2023-12-01",
+      isRemote: true
+    },
+    {
+      id: "JOB046",
+      title: "Sales Manager",
+      department: "Sales",
+      location: "Mumbai, Maharashtra",
+      type: "Full-time",
+      experience: "5-8 years",
+      salary: "₹15-22 LPA",
+      skills: ["Sales Management", "Team Leadership", "B2B Sales", "Strategy"],
+      description: "Lead our sales team to achieve revenue targets. You'll develop sales strategies, manage team performance, and drive business growth.",
+      requirements: [
+        "5+ years of sales management experience",
+        "Proven track record of meeting sales targets",
+        "Strong leadership and team management skills",
+        "Experience in B2B sales",
+        "Strategic thinking and planning abilities"
+      ],
+      responsibilities: [
+        "Lead and manage sales team",
+        "Develop sales strategies and processes",
+        "Monitor sales performance and metrics",
+        "Coach and develop sales representatives",
+        "Collaborate with marketing and product teams"
+      ],
+      postedDate: "2023-11-30",
+      isRemote: false
+    },
+    {
+      id: "JOB047",
+      title: "Brand Manager",
+      department: "Marketing",
+      location: "Delhi, Delhi",
+      type: "Full-time",
+      experience: "4-6 years",
+      salary: "₹10-15 LPA",
+      skills: ["Brand Management", "Marketing Strategy", "Campaign Management", "Analytics"],
+      description: "Manage and grow our brand presence. You'll develop brand strategies, oversee campaigns, and ensure consistent brand messaging.",
+      requirements: [
+        "4+ years of brand management experience",
+        "Strong understanding of brand strategy",
+        "Experience with campaign management",
+        "Creative and strategic thinking",
+        "Knowledge of digital marketing"
+      ],
+      responsibilities: [
+        "Develop brand strategies and positioning",
+        "Manage brand campaigns and initiatives",
+        "Ensure brand consistency across channels",
+        "Monitor brand performance and sentiment",
+        "Collaborate with creative and marketing teams"
+      ],
+      postedDate: "2023-11-29",
+      isRemote: true
+    },
+    {
+      id: "JOB048",
+      title: "API Developer",
+      department: "Engineering",
+      location: "Hyderabad, Telangana",
+      type: "Full-time",
+      experience: "3-5 years",
+      salary: "₹10-15 LPA",
+      skills: ["API Development", "REST", "GraphQL", "Microservices"],
+      description: "Design and develop APIs that power our platform. You'll work on REST and GraphQL APIs, ensuring scalability and performance.",
+      requirements: [
+        "3+ years of API development experience",
+        "Experience with REST and GraphQL",
+        "Knowledge of API design best practices",
+        "Understanding of microservices architecture",
+        "Experience with API testing and documentation"
+      ],
+      responsibilities: [
+        "Design and develop scalable APIs",
+        "Implement API security and authentication",
+        "Write API documentation and tests",
+        "Optimize API performance",
+        "Collaborate with frontend and mobile teams"
+      ],
+      postedDate: "2023-11-28",
+      isRemote: true
+    },
+    {
+      id: "JOB049",
+      title: "Talent Acquisition Specialist",
+      department: "Human Resources",
+      location: "Bangalore, Karnataka",
+      type: "Full-time",
+      experience: "3-5 years",
+      salary: "₹7-11 LPA",
+      skills: ["Talent Acquisition", "Recruiting", "Interviewing", "Sourcing"],
+      description: "Lead our talent acquisition efforts to build amazing teams. You'll source, screen, and hire top talent across all departments.",
+      requirements: [
+        "3+ years of talent acquisition experience",
+        "Experience with technical and non-technical hiring",
+        "Strong sourcing and networking skills",
+        "Knowledge of interviewing best practices",
+        "Experience with ATS and recruiting tools"
+      ],
+      responsibilities: [
+        "Source and attract top talent",
+        "Screen candidates and conduct interviews",
+        "Manage the full recruitment cycle",
+        "Build talent pipelines for key roles",
+        "Collaborate with hiring managers"
+      ],
+      postedDate: "2023-11-27",
+      isRemote: false
+    },
+    {
+      id: "JOB050",
+      title: "Growth Product Manager",
+      department: "Product",
+      location: "Mumbai, Maharashtra",
+      type: "Full-time",
+      experience: "4-7 years",
+      salary: "₹18-25 LPA",
+      skills: ["Growth Product Management", "A/B Testing", "Analytics", "User Acquisition"],
+      description: "Drive user growth through product experimentation and optimization. You'll focus on acquisition, activation, retention, and monetization.",
+      requirements: [
+        "4+ years of product management experience",
+        "Experience with growth and experimentation",
+        "Strong analytical and data-driven mindset",
+        "Knowledge of A/B testing and optimization",
+        "Understanding of user acquisition funnels"
+      ],
+      responsibilities: [
+        "Drive product-led growth initiatives",
+        "Design and run growth experiments",
+        "Analyze user behavior and conversion funnels",
+        "Optimize onboarding and retention flows",
+        "Collaborate with engineering and design teams"
+      ],
+      postedDate: "2023-11-26",
+      isRemote: true
+    }
+  ];
+
   const testimonials = [
     {
       name: "Priya Sharma",
@@ -701,6 +2171,10 @@ function App() {
                 Pricing
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 group-hover:w-full transition-all duration-200"></span>
               </a>
+              <button onClick={goToCareers} className={`${isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-700 hover:text-blue-600'} font-medium transition-colors duration-200 relative group`}>
+                Careers
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 group-hover:w-full transition-all duration-200"></span>
+              </button>
               
               {/* Theme Toggle */}
               <button
@@ -1158,6 +2632,242 @@ function App() {
         </section>
       )}
 
+      {/* Careers Page */}
+      {route === 'careers' && (
+        <section id="careers" className={`py-16 ${isDarkMode ? 'bg-gray-900' : 'bg-white'} min-h-screen`}>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            {/* Header */}
+            <div className="text-center mb-12">
+              <h1 className={`text-4xl md:text-5xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-4`}>
+                Join Our Team
+              </h1>
+              <p className={`text-xl ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} max-w-3xl mx-auto`}>
+                Be part of a team that's transforming how people access home services. We're looking for passionate individuals to help us build the future of service delivery.
+              </p>
+            </div>
+
+            {/* Filters */}
+            <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'} rounded-xl p-6 mb-8 border`}>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                {/* Search */}
+                <div className="lg:col-span-2">
+                  <input
+                    type="text"
+                    placeholder="Search jobs..."
+                    value={jobFilters.search}
+                    onChange={(e) => setJobFilters(prev => ({...prev, search: e.target.value}))}
+                    className={`w-full px-4 py-2 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                  />
+                </div>
+                
+                {/* Department Filter */}
+                <select
+                  value={jobFilters.department}
+                  onChange={(e) => setJobFilters(prev => ({...prev, department: e.target.value}))}
+                  className={`px-4 py-2 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                >
+                  <option value="all">All Departments</option>
+                  <option value="Engineering">Engineering</option>
+                  <option value="Product">Product</option>
+                  <option value="Design">Design</option>
+                  <option value="Marketing">Marketing</option>
+                  <option value="Sales">Sales</option>
+                  <option value="Human Resources">HR</option>
+                  <option value="Finance">Finance</option>
+                  <option value="Operations">Operations</option>
+                  <option value="Data & Analytics">Data & Analytics</option>
+                  <option value="Legal">Legal</option>
+                  <option value="Security">Security</option>
+                  <option value="IT">IT</option>
+                  <option value="Customer Success">Customer Success</option>
+                  <option value="Customer Support">Customer Support</option>
+                  <option value="Business Development">Business Development</option>
+                </select>
+
+                {/* Location Filter */}
+                <select
+                  value={jobFilters.location}
+                  onChange={(e) => setJobFilters(prev => ({...prev, location: e.target.value}))}
+                  className={`px-4 py-2 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                >
+                  <option value="all">All Locations</option>
+                  <option value="Mumbai">Mumbai</option>
+                  <option value="Bangalore">Bangalore</option>
+                  <option value="Delhi">Delhi</option>
+                  <option value="Hyderabad">Hyderabad</option>
+                  <option value="Pune">Pune</option>
+                  <option value="Chennai">Chennai</option>
+                  <option value="Gurgaon">Gurgaon</option>
+                  <option value="Noida">Noida</option>
+                </select>
+
+                {/* Experience Filter */}
+                <select
+                  value={jobFilters.experience}
+                  onChange={(e) => setJobFilters(prev => ({...prev, experience: e.target.value}))}
+                  className={`px-4 py-2 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                >
+                  <option value="all">All Experience</option>
+                  <option value="1-3 years">1-3 years</option>
+                  <option value="2-4 years">2-4 years</option>
+                  <option value="3-5 years">3-5 years</option>
+                  <option value="4-6 years">4-6 years</option>
+                  <option value="5-8 years">5-8 years</option>
+                  <option value="6-10 years">6+ years</option>
+                </select>
+              </div>
+              
+              {/* Clear Filters */}
+              <div className="mt-4 flex justify-between items-center">
+                <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  {(() => {
+                    const filteredJobs = jobListings.filter(job => {
+                      const matchesSearch = jobFilters.search === '' || 
+                        job.title.toLowerCase().includes(jobFilters.search.toLowerCase()) ||
+                        job.description.toLowerCase().includes(jobFilters.search.toLowerCase()) ||
+                        job.skills.some(skill => skill.toLowerCase().includes(jobFilters.search.toLowerCase()));
+                      const matchesDepartment = jobFilters.department === 'all' || job.department === jobFilters.department;
+                      const matchesLocation = jobFilters.location === 'all' || job.location.includes(jobFilters.location);
+                      const matchesExperience = jobFilters.experience === 'all' || job.experience === jobFilters.experience;
+                      return matchesSearch && matchesDepartment && matchesLocation && matchesExperience;
+                    });
+                    return `${filteredJobs.length} jobs found`;
+                  })()}
+                </span>
+                <button
+                  onClick={() => setJobFilters({department: 'all', location: 'all', experience: 'all', type: 'all', search: ''})}
+                  className={`text-sm ${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-500'} transition-colors`}
+                >
+                  Clear all filters
+                </button>
+              </div>
+            </div>
+
+            {/* Job Listings */}
+            <div className="grid gap-6">
+              {(() => {
+                const filteredJobs = jobListings.filter(job => {
+                  const matchesSearch = jobFilters.search === '' || 
+                    job.title.toLowerCase().includes(jobFilters.search.toLowerCase()) ||
+                    job.description.toLowerCase().includes(jobFilters.search.toLowerCase()) ||
+                    job.skills.some(skill => skill.toLowerCase().includes(jobFilters.search.toLowerCase()));
+                  const matchesDepartment = jobFilters.department === 'all' || job.department === jobFilters.department;
+                  const matchesLocation = jobFilters.location === 'all' || job.location.includes(jobFilters.location);
+                  const matchesExperience = jobFilters.experience === 'all' || job.experience === jobFilters.experience;
+                  return matchesSearch && matchesDepartment && matchesLocation && matchesExperience;
+                });
+
+                return filteredJobs.map((job) => (
+                  <div key={job.id} className={`${isDarkMode ? 'bg-gray-800 border-gray-700 hover:bg-gray-750' : 'bg-white border-gray-200 hover:bg-gray-50'} rounded-xl border p-6 transition-all duration-200 hover:shadow-lg`}>
+                    <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between">
+                      <div className="flex-1">
+                        <div className="flex flex-wrap items-center gap-2 mb-3">
+                          <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                            {job.title}
+                          </h3>
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${isDarkMode ? 'bg-blue-900 text-blue-300' : 'bg-blue-100 text-blue-800'}`}>
+                            {job.id}
+                          </span>
+                          {job.isRemote && (
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${isDarkMode ? 'bg-green-900 text-green-300' : 'bg-green-100 text-green-800'}`}>
+                              Remote
+                            </span>
+                          )}
+                        </div>
+                        
+                        <div className="flex flex-wrap items-center gap-4 mb-3 text-sm">
+                          <span className={`flex items-center ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            <MapPin className="w-4 h-4 mr-1" />
+                            {job.location}
+                          </span>
+                          <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            {job.department}
+                          </span>
+                          <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            {job.experience}
+                          </span>
+                          <span className={`font-semibold ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
+                            {job.salary}
+                          </span>
+                        </div>
+
+                        <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-700'} mb-4 line-clamp-2`}>
+                          {job.description}
+                        </p>
+
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          {job.skills.slice(0, 4).map((skill, index) => (
+                            <span key={index} className={`px-3 py-1 rounded-full text-xs ${isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'}`}>
+                              {skill}
+                            </span>
+                          ))}
+                          {job.skills.length > 4 && (
+                            <span className={`px-3 py-1 rounded-full text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                              +{job.skills.length - 4} more
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row lg:flex-col gap-3 lg:ml-6">
+                        <button className={`px-6 py-2 rounded-lg font-medium transition-all duration-200 ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'} hover:shadow-lg`}>
+                          View Details
+                        </button>
+                        <button className={`px-6 py-2 rounded-lg font-medium transition-all duration-200 ${isDarkMode ? 'border-2 border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-2 border-gray-300 text-gray-700 hover:bg-gray-50'}`}>
+                          Quick Apply
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ));
+              })()}
+            </div>
+
+            {/* No Results */}
+            {(() => {
+              const filteredJobs = jobListings.filter(job => {
+                const matchesSearch = jobFilters.search === '' || 
+                  job.title.toLowerCase().includes(jobFilters.search.toLowerCase()) ||
+                  job.description.toLowerCase().includes(jobFilters.search.toLowerCase()) ||
+                  job.skills.some(skill => skill.toLowerCase().includes(jobFilters.search.toLowerCase()));
+                const matchesDepartment = jobFilters.department === 'all' || job.department === jobFilters.department;
+                const matchesLocation = jobFilters.location === 'all' || job.location.includes(jobFilters.location);
+                const matchesExperience = jobFilters.experience === 'all' || job.experience === jobFilters.experience;
+                return matchesSearch && matchesDepartment && matchesLocation && matchesExperience;
+              });
+
+              if (filteredJobs.length === 0) {
+                return (
+                  <div className="text-center py-12">
+                    <div className={`text-6xl mb-4 ${isDarkMode ? 'text-gray-600' : 'text-gray-400'}`}>🔍</div>
+                    <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-2`}>
+                      No jobs found
+                    </h3>
+                    <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-4`}>
+                      Try adjusting your filters or search terms
+                    </p>
+                    <button
+                      onClick={() => setJobFilters({department: 'all', location: 'all', experience: 'all', type: 'all', search: ''})}
+                      className={`px-6 py-2 rounded-lg font-medium ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'} transition-colors`}
+                    >
+                      Clear all filters
+                    </button>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+
+            {/* Back to Home */}
+            <div className="text-center mt-12">
+              <button onClick={goHome} className={`px-6 py-3 rounded-lg font-medium ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-800'} transition-colors`}>
+                Back to Home
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* How It Works Section */}
       {route === 'home' && (
       <section id="how-it-works" className={`py-20 ${isDarkMode ? 'bg-gray-800' : 'bg-gray-50'}`}>
@@ -1605,7 +3315,7 @@ function App() {
               <h4 className="text-lg font-semibold mb-4">Company</h4>
               <ul className="space-y-2 text-gray-400">
                 <li><a href="#" className="hover:text-white transition-colors duration-200">About Us</a></li>
-                <li><a href="#" className="hover:text-white transition-colors duration-200">Careers</a></li>
+                <li><button onClick={goToCareers} className="hover:text-white transition-colors duration-200">Careers</button></li>
                 <li><a href="#" className="hover:text-white transition-colors duration-200">Press</a></li>
                 <li><a href="#" className="hover:text-white transition-colors duration-200">Blog</a></li>
                 <li><a href="#" className="hover:text-white transition-colors duration-200">Investor Relations</a></li>
@@ -1984,6 +3694,169 @@ function App() {
           </div>
         </div>
       )}
+
+      {/* Chatbot Component */}
+      <div className={`fixed bottom-6 right-6 z-50 ${isChatOpen ? 'w-96 h-[32rem]' : 'w-auto h-auto'} transition-all duration-300`}>
+        {!isChatOpen ? (
+          // Chat Toggle Button
+          <button
+            onClick={toggleChat}
+            className={`${isDarkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-600 hover:bg-blue-700'} text-white rounded-full p-4 shadow-lg hover:shadow-xl transition-all duration-200 group`}
+            aria-label="Open chat"
+          >
+            <HeadphonesIcon className="w-6 h-6 group-hover:scale-110 transition-transform" />
+            <div className="absolute -top-2 -left-2 w-4 h-4 bg-green-500 rounded-full animate-pulse"></div>
+          </button>
+        ) : (
+          // Chat Window
+          <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl shadow-2xl border h-full flex flex-col`}>
+            {/* Chat Header */}
+            <div className={`${isDarkMode ? 'bg-blue-700' : 'bg-blue-600'} text-white px-6 py-4 rounded-t-2xl flex items-center justify-between`}>
+              <div className="flex items-center space-x-3">
+                <div className="relative">
+                  <HeadphonesIcon className="w-6 h-6" />
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full"></div>
+                </div>
+                <div>
+                  <h3 className="font-semibold">Servecure Assistant</h3>
+                  <p className="text-blue-100 text-sm">Always here to help</p>
+                </div>
+              </div>
+              <button
+                onClick={toggleChat}
+                className="hover:bg-blue-800 p-1 rounded-full transition-colors"
+                aria-label="Close chat"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Chat Messages */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {chatMessages.map((msg) => (
+                <div key={msg.id} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[80%] ${
+                    msg.type === 'user'
+                      ? 'bg-blue-600 text-white rounded-2xl rounded-br-md'
+                      : isDarkMode 
+                        ? 'bg-gray-700 text-gray-200 rounded-2xl rounded-bl-md'
+                        : 'bg-gray-100 text-gray-800 rounded-2xl rounded-bl-md'
+                  } px-4 py-3`}>
+                    <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
+                    
+                    {/* Intent Badge for Bot Messages */}
+                    {msg.type === 'bot' && msg.intent && msg.intent !== 'error' && (
+                      <div className="mt-2">
+                        <span className={`inline-block px-2 py-1 rounded-full text-xs ${
+                          msg.intent === 'careers' 
+                            ? 'bg-green-100 text-green-800' 
+                            : msg.intent === 'services'
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {msg.intent}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {/* Suggested Actions */}
+                    {msg.type === 'bot' && msg.suggestedActions && msg.suggestedActions.length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        {msg.suggestedActions.slice(0, 3).map((action, index) => (
+                          <button
+                            key={index}
+                            onClick={() => handleSuggestedAction(action)}
+                            className={`block w-full text-left px-3 py-2 text-xs rounded-lg transition-colors ${
+                              isDarkMode
+                                ? 'bg-gray-600 hover:bg-gray-500 text-gray-200'
+                                : 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-200'
+                            }`}
+                          >
+                            {action}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    
+                    <p className={`text-xs mt-2 ${
+                      msg.type === 'user' ? 'text-blue-100' : isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                    }`}>
+                      {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              
+              {/* Typing Indicator */}
+              {isTyping && (
+                <div className="flex justify-start">
+                  <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'} rounded-2xl rounded-bl-md px-4 py-3`}>
+                    <div className="flex space-x-1">
+                      <div className={`w-2 h-2 ${isDarkMode ? 'bg-gray-500' : 'bg-gray-400'} rounded-full animate-bounce`}></div>
+                      <div className={`w-2 h-2 ${isDarkMode ? 'bg-gray-500' : 'bg-gray-400'} rounded-full animate-bounce`} style={{ animationDelay: '0.1s' }}></div>
+                      <div className={`w-2 h-2 ${isDarkMode ? 'bg-gray-500' : 'bg-gray-400'} rounded-full animate-bounce`} style={{ animationDelay: '0.2s' }}></div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Error Message */}
+            {chatError && (
+              <div className="px-4 py-2">
+                <div className="bg-red-100 border border-red-300 text-red-700 px-3 py-2 rounded-lg text-sm">
+                  {chatError}
+                </div>
+              </div>
+            )}
+
+            {/* Chat Input */}
+            <div className={`border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} p-4`}>
+              <form onSubmit={handleChatSubmit} className="flex space-x-2">
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  placeholder="Ask me anything about Servecure..."
+                  className={`flex-1 px-4 py-2 rounded-xl border ${
+                    isDarkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                  } focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  disabled={isTyping}
+                />
+                <button
+                  type="submit"
+                  disabled={!chatInput.trim() || isTyping}
+                  className={`px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
+                    isTyping ? 'cursor-not-allowed' : ''
+                  }`}
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </form>
+              
+              {/* Quick Actions */}
+              <div className="mt-3 flex flex-wrap gap-2">
+                {['What services do you offer?', 'Any job openings?', 'How does it work?'].map((quickMsg, index) => (
+                  <button
+                    key={index}
+                    onClick={() => sendChatMessage(quickMsg)}
+                    disabled={isTyping}
+                    className={`text-xs px-3 py-1 rounded-full transition-colors ${
+                      isDarkMode
+                        ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                        : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
+                    } disabled:opacity-50`}
+                  >
+                    {quickMsg}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
